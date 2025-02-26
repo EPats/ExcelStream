@@ -18,11 +18,12 @@ interaction between components.
 
 class ExcelFormulaTracker:
 
-    def __init__(self, display_type: str = 'tkinter') -> None:
+    def __init__(self, display_type: str = 'tkinter', debug_mode: bool = False) -> None:
         self.logger = logging.getLogger(__name__)
+        self.debug_mode: bool = debug_mode
 
         self.scraper = ExcelScraper()
-        self.display = create_formula_display(display_type)
+        self.display = create_formula_display(display_type, debug_mode=debug_mode)
 
         self.current_formula: dict[str, str] | None = None
         self.last_cell: str | None = None
@@ -39,7 +40,9 @@ class ExcelFormulaTracker:
         Main update loop. Checks Excel status and updates the display.
         """
         excel_active = self.scraper.update_active_excel()
-        self._update_status_display()
+
+        if self.debug_mode:
+            self._update_status_display()
 
         # No Excel instance? Wait and retry
         if not excel_active:

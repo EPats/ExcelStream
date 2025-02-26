@@ -28,6 +28,11 @@ class FormulaDisplayBase(ABC):
     """
 
     @abstractmethod
+    def __init__(self, debug_mode: bool = False) -> None:
+        """Initialize the display with optional debug mode"""
+        pass
+
+    @abstractmethod
     def show(self) -> None:
         """Show the display"""
         pass
@@ -87,8 +92,9 @@ class TkinterFormulaDisplay(FormulaDisplayBase):
     Creates a floating overlay window showing formula information.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, debug_mode: bool = False) -> None:
         self.logger = logging.getLogger(__name__)
+        self.debug_mode: bool = debug_mode
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -110,13 +116,15 @@ class TkinterFormulaDisplay(FormulaDisplayBase):
         )
         self.formula_label.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-        # Status display
+        # Status display (only shown in debug mode)
         self.instance_label: tk.Label = tk.Label(
             self.root,
             text='Searching for Excel instances...',
             font=STATUS_FONT
         )
-        self.instance_label.pack(pady=5, fill=tk.X)
+
+        if self.debug_mode:
+            self.instance_label.pack(pady=5, fill=tk.X)
 
     def show(self) -> None:
         """Make the window visible"""
@@ -135,8 +143,9 @@ class TkinterFormulaDisplay(FormulaDisplayBase):
             self.formula_label.config(text='No formula detected')
 
     def update_status(self, status_text: str) -> None:
-        """Update the status text at the bottom of the window"""
-        self.instance_label.config(text=status_text)
+        """Update the status text at the bottom of the window (if in debug mode) """
+        if self.debug_mode and hasattr(self, 'instance_label'):
+            self.instance_label.config(text=status_text)
 
     def set_error(self, error_message: str) -> None:
         """Display an error message in the formula area"""
@@ -172,18 +181,11 @@ class TkinterFormulaDisplay(FormulaDisplayBase):
 
 
 # Factory function to create the appropriate display
-def create_formula_display(display_type: str = 'tkinter') -> FormulaDisplayBase:
-    """
-    Factory function to create the appropriate display type.
+def create_formula_display(display_type: str = 'tkinter', debug_mode: bool = False) -> FormulaDisplayBase:
+    """ Factory function to create the appropriate display type. """
 
-    Args:
-        display_type: The type of display to create ('tkinter' or future options)
-
-    Returns:
-        An instance of FormulaDisplayBase
-    """
     if display_type.lower() == 'tkinter':
-        return TkinterFormulaDisplay()
+        return TkinterFormulaDisplay(debug_mode=debug_mode)
     else:
         # Default to tkinter if unknown type
-        return TkinterFormulaDisplay()
+        return TkinterFormulaDisplay(debug_mode=debug_mode)

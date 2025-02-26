@@ -35,6 +35,12 @@ def parse_arguments():
         help='Enable verbose logging'
     )
 
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode with additional status information'
+    )
+
     return parser.parse_args()
 
 
@@ -42,7 +48,10 @@ def main():
     args = parse_arguments()
     setup_logging(args.verbose)
 
-    tracker = ExcelFormulaTracker(display_type=args.display)
+    tracker = ExcelFormulaTracker(
+        display_type=args.display,
+        debug_mode=args.debug
+    )
     tracker.run()
 
 
