@@ -13,8 +13,6 @@ Tracks Excel windows, processes, and formula information.
 
 # Constants
 EXCEL_MAIN_CLASS = 'XLMAIN'
-FORMULA_BAR_CLASSES = ['EXCEL6', 'EXCEL6.0']
-FORMULA_EDIT_CLASSES = ['EXCEL2', 'EXCEL7', 'EXCEL9']
 
 
 class ExcelScraper:
@@ -33,14 +31,6 @@ class ExcelScraper:
         # Window IDs
         self.active_excel_hwnd: int | None = None
         self.active_excel_pid: int | None = None
-        self.formula_bar_hwnd: int | None = None
-        self.formula_edit_hwnd: int | None = None
-
-        # Cell tracking
-        self.last_address: str | None = None
-        self.last_cell: str | None = None
-        self.edit_mode: bool = False
-        self.editing_cell: str | None = None
 
         # Initialize Excel tracking
         self.initialize_excel_instances()
@@ -173,62 +163,6 @@ class ExcelScraper:
         self.active_excel_hwnd = None
         self.excel_app = None
 
-    def find_formula_controls(self, excel_hwnd: int) -> None:
-        """Find the formula bar and formula edit controls in an Excel window"""
-        self.formula_bar_hwnd = None
-        self.formula_edit_hwnd = None
-
-        self._search_for_formula_controls(excel_hwnd)
-
-        if not self.formula_bar_hwnd:
-            self._search_in_child_containers(excel_hwnd)
-
-        self.logger.debug(f'Formula controls: Bar={self.formula_bar_hwnd}, Edit={self.formula_edit_hwnd}')
-
-    def _search_for_formula_controls(self, parent_hwnd: int) -> None:
-        def find_controls(child_hwnd: int, _: None) -> bool:
-            try:
-                class_name = win32gui.GetClassName(child_hwnd)
-                if class_name in FORMULA_BAR_CLASSES:
-                    self.formula_bar_hwnd = child_hwnd
-                    self._find_formula_edit_control(child_hwnd)
-            except win32gui.error as e:  # type: ignore[unresolved-import]
-                self.logger.error(f'Win32 error: {e}')
-            return True
-
-        try:
-            win32gui.EnumChildWindows(parent_hwnd, find_controls, None)
-        except win32api.error as e:  # type: ignore[unresolved-import]
-            self.logger.error(f'Error searching for formula controls: {e}')
-
-    def _find_formula_edit_control(self, formula_bar_hwnd: int) -> None:
-        def find_edit(edit_hwnd: int, _: None) -> bool:
-            try:
-                edit_class = win32gui.GetClassName(edit_hwnd)
-                if edit_class in FORMULA_EDIT_CLASSES:
-                    self.formula_edit_hwnd = edit_hwnd
-                    return False
-            except win32api.error:  # type: ignore[unresolved-import]
-                pass
-            return True
-
-        try:
-            win32gui.EnumChildWindows(formula_bar_hwnd, find_edit, None)
-        except win32api.error as e:  # type: ignore[unresolved-import]
-            self.logger.error(f'Error finding formula edit control: {e}')
-
-    def _search_in_child_containers(self, excel_hwnd: int) -> None:
-        def find_container(container_hwnd: int, _: None) -> bool:
-            if self.formula_bar_hwnd:
-                return False  # Stop if already found
-            self._search_for_formula_controls(container_hwnd)
-            return not self.formula_bar_hwnd
-
-        try:
-            win32gui.EnumChildWindows(excel_hwnd, find_container, None)
-        except win32api.error as e:  # type: ignore[unresolved-import]
-            self.logger.error(f'Error searching child containers: {e}')
-
     def get_active_excel_window(self) -> tuple[int | None, int | None]:
         """
         Get the currently active Excel window and process ID as a tuple, or None, None if not found
@@ -320,7 +254,6 @@ class ExcelScraper:
 
         if active_hwnd != self.active_excel_hwnd:
             self.active_excel_hwnd = active_hwnd
-            self.find_formula_controls(active_hwnd)
 
         return True
 
@@ -337,12 +270,6 @@ class ExcelScraper:
         self.active_excel_pid = pid
         self.excel_app = self.excel_processes[pid]
         self.active_excel_hwnd = hwnd
-
-        # Reset tracking state
-        self.last_address = None
-        self.last_cell = None
-        self.edit_mode = False
-        self.editing_cell = None
 
         window_title = win32gui.GetWindowText(hwnd)
         self.logger.info(f'Switched to Excel: {window_title} (pid: {pid})')

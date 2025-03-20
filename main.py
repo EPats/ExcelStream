@@ -24,9 +24,9 @@ def parse_arguments():
 
     parser.add_argument(
         '--display',
-        choices=['tkinter'],
-        default='tkinter',
-        help='Display type to use (default: tkinter)'
+        choices=['tkinter', 'customtkinter'],
+        default='customtkinter',
+        help='Display type to use (default: customtkinter)'
     )
 
     parser.add_argument(
